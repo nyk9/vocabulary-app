@@ -1,0 +1,12 @@
+{
+  "name": "my-app",
+  "private": true,
+  "workspaces": [
+    "src",
+    "src-tauri"
+  ],
+  "devDependencies": {
+    "next": "^14.2.3",
+    "typescript": "^5.0.0"
+  }
+}
