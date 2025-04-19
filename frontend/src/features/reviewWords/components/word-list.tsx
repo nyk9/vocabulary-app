@@ -1,0 +1,69 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Word } from "@/types/word";
+import { invoke } from "@tauri-apps/api/core";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Link from "next/link";
+
+export default function WordList() {
+  const [words, setWords] = useState<Word[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleWord = async () => {
+      try {
+        const wordList = await invoke<Word[]>("get_words");
+        setWords(wordList || []);
+      } catch (error) {
+        console.error("Failed to get words:", error);
+        setError(`Error: ${error}`);
+      }
+    };
+    handleWord();
+  }, []);
+
+  return (
+    <div className="p-4">
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+
+      <div>
+        <h2 className="text-lg font-bold mb-2">単語リスト ({words.length})</h2>
+        {words.length > 0 ? (
+          <div className="space-y-3">
+            {words.map((word) => (
+              <Card key={word.id} className="my-1">
+                <CardHeader>
+                  <CardTitle>{word.vocabulary}</CardTitle>
+                  <CardDescription>カテゴリ: {word.category}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {word.meaning} ({word.translate})
+                </CardContent>
+                <CardFooter>
+                  <div>
+                    {word.example && (
+                      <div className="text-sm italic">例: {word.example}</div>
+                    )}
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p>
+            単語がありません。
+            <Link href={"/add"}> 単語を追加してください。</Link>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

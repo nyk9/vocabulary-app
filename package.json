@@ -2,11 +2,14 @@
   "name": "my-app",
   "private": true,
   "workspaces": [
-    "src",
+    "frontend",
     "src-tauri"
   ],
   "devDependencies": {
-    "next": "^14.2.3",
+    "next": "^15.2.4",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.4.1"
   }
 }
