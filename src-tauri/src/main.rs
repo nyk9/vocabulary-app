@@ -124,9 +124,28 @@ async fn add_word(
 }
 
 #[tauri::command]
-async fn delete_word(_id: u32) -> Result<(), String> {
-    let _words = get_words();
+async fn delete_word(id: u32, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let mut words = WORDS
+        .lock()
+        .map_err(|e| format!("Failed to lock words: {:?}", e))?;
 
+    let path = get_words_file_path(&app_handle)?;
+
+    // 標準ライブラリを使ってディレクトリが存在することを確認
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+
+    // 引数のidと一致する単語を削除する。
+    if let Some(index) = words.iter().position(|word| word.id == id) {
+        words.remove(index);
+    }
+
+    // 指定した単語を削除した後の残りの単語リストをjsonに書き込む
+    let json = serde_json::to_string(&*words).map_err(|e| e.to_string())?;
+
+    // 標準ライブラリを使ってファイルに書き込む
+    fs::write(&path, json).map_err(|e| format!("Failed to write file: {}", e))?;
     Ok(())
 }
 
