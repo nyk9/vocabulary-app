@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function WordList() {
   const [words, setWords] = useState<Word[]>([]);
@@ -30,6 +31,16 @@ export default function WordList() {
     handleWord();
   }, []);
 
+  const deleteWord = async (id: number) => {
+    try {
+      await invoke("delete_word", { id });
+      setWords(words.filter((word) => word.id !== id));
+    } catch (error) {
+      console.error("Failed to delete word:", error);
+      setError(`Error: ${error}`);
+    }
+  };
+
   return (
     <div className="p-4">
       {error && <div className="text-red-500 mb-4">{error}</div>}
@@ -41,7 +52,9 @@ export default function WordList() {
             {words.map((word) => (
               <Card key={word.id} className="my-1">
                 <CardHeader>
-                  <CardTitle>{word.vocabulary}</CardTitle>
+                  <CardTitle>
+                    {word.vocabulary} (id: {word.id})
+                  </CardTitle>
                   <CardDescription>カテゴリ: {word.category}</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -52,6 +65,7 @@ export default function WordList() {
                     {word.example && (
                       <div className="text-sm italic">例: {word.example}</div>
                     )}
+                    <Button onClick={() => deleteWord(word.id)}>削除</Button>
                   </div>
                 </CardFooter>
               </Card>
