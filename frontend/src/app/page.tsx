@@ -1,6 +1,9 @@
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import WordList from "@/features/reviewWords/components/word-list";
 
 export default function Home() {
-  return <div></div>;
+  return (
+    <div>
+      <WordList />
+    </div>
+  );
 }
