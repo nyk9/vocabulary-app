@@ -29,7 +29,7 @@ export default function WordList() {
       }
     };
     handleWord();
-  }, [words]);
+  }, []);
 
   const deleteWord = async (id: number) => {
     try {
