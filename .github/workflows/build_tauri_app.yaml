@@ -1,0 +1,66 @@
+name: "publish"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "macos-latest" # ArmベースのMac（M1以上）用
+            args: "--target aarch64-apple-darwin"
+          - platform: "macos-latest" # IntelベースのMac用
+            args: "--target x86_64-apple-darwin"
+          - platform: "ubuntu-22.04"
+            args: ""
+          - platform: "windows-latest"
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04' # これは上で定義されたplatformの値と一致する必要があります。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      # (bunのインストール)
+      - name: setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable # これをdtolnay/rust-toolchain@nightlyに設定します。
+        with:
+          # これらのターゲットはmacOSランナーでのみ使用されるため、WindowsとLinuxのビルドを少し高速化するために`if`に入っています。
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: install frontend dependencies
+        # `beforeBuildCommand`が設定されていない場合、ここでフロントエンドをビルドすることを検討してください。
+        run: bun install # 使用するものに応じて、これをnpmまたはpnpmに変更します。(ここではbunに変更しています)
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: app-v__VERSION__ # アクションは自動的に\_\_VERSION\_\_をアプリのバージョンに置き換えます。
+          releaseName: "App v__VERSION__"
+          releaseBody: "このバージョンをダウンロードしてインストールするには、アセットを参照してください。"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
