@@ -47,6 +47,19 @@ fn get_words() -> Result<Vec<Word>, String> {
     Ok(words.clone())
 }
 
+#[tauri::command]
+fn get_words_by_id(id: u32) -> Result<Word, String> {
+    let words = WORDS
+        .lock()
+        .map_err(|e| format!("Failed to lock words: {:?}", e))?;
+
+    words
+        .iter()
+        .find(|word| word.id == id)
+        .cloned()
+        .ok_or_else(|| format!("ID: {} の単語が見つかりませんでした", id))
+}
+
 // 単語をJSONファイルに保存するコマンド
 #[tauri::command]
 async fn save_words_to_file(app_handle: tauri::AppHandle) -> Result<(), String> {
@@ -149,6 +162,38 @@ async fn delete_word(id: u32, app_handle: tauri::AppHandle) -> Result<(), String
     Ok(())
 }
 
+#[tauri::command]
+async fn update_word(
+    id: u32,
+    vocabulary: String,
+    meaning: String,
+    translate: String,
+    example: Option<String>,
+    category: String,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    {
+        let mut words = WORDS
+            .lock()
+            .map_err(|e| format!("Failed to lock words: {:?}", e))?;
+
+        if let Some(index) = words.iter().position(|word| word.id == id) {
+            words[index] = Word {
+                id,
+                vocabulary,
+                meaning,
+                translate,
+                example,
+                category,
+            };
+        } else {
+            return Err(format!("ID: {} が存在しません", id));
+        };
+    }
+    save_words_to_file(app_handle).await?;
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         // tauri-plugin-fsはプラグインとしては必要なくなりました
@@ -165,9 +210,11 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_words,
+            get_words_by_id,
             add_word,
             save_words_to_file,
-            delete_word
+            delete_word,
+            update_word
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
