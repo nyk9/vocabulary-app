@@ -58,14 +58,24 @@ export default function WordList() {
                   <CardDescription>カテゴリ: {word.category}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {word.meaning} ({word.translate})
+                  <p>意味：{word.meaning} </p>
+                  <p>翻訳：{word.translate}</p>
                 </CardContent>
                 <CardFooter>
                   <div>
                     {word.example && (
                       <div className="text-sm italic">例: {word.example}</div>
                     )}
-                    <Button onClick={() => deleteWord(word.id)}>削除</Button>
+                    <Button
+                      variant={"destructive"}
+                      onClick={() => deleteWord(word.id)}
+                      className="m-1"
+                    >
+                      削除
+                    </Button>
+                    <Button variant={"ghost"}>
+                      <Link href={`/update/${word.id}`}>更新</Link>
+                    </Button>
                   </div>
                 </CardFooter>
               </Card>
