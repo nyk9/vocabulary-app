@@ -24,8 +24,18 @@ import {
 } from "@/components/ui/card";
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
+import { Word } from "@/types/word";
 
-export default function AddVocabularyForm() {
+type VocabularyFormProps = {
+  mode: "追加" | "更新";
+  wordId?: number;
+};
+
+export default function AddVocabularyForm({
+  mode = "追加",
+  wordId,
+}: VocabularyFormProps) {
   const { toast } = useToast();
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -38,18 +48,50 @@ export default function AddVocabularyForm() {
     },
   });
 
+  useEffect(() => {
+    if (mode === "更新" && wordId) {
+      const fetchWord = async () => {
+        try {
+          const word: Word = await invoke("get_words_by_id", { id: wordId });
+          form.reset({
+            vocabulary: word.vocabulary,
+            meaning: word.meaning,
+            translate: word.translate,
+            exampleSentence: word.example || "",
+            category: word.category,
+          });
+        } catch (error) {
+          console.error("", error);
+        }
+      };
+      fetchWord();
+    }
+  }, [mode, wordId]);
+
   async function onSubmit(value: z.infer<typeof formSchema>) {
     try {
       const { vocabulary, meaning, translate, exampleSentence, category } =
         value;
+      if (mode == "追加") {
+        await invoke<string>("add_word", {
+          vocabulary,
+          meaning,
+          translate,
+          example: exampleSentence,
+          category,
+        });
+      } else if (mode == "更新" && wordId) {
+        await invoke<string>("update_word", {
+          id: wordId,
+          vocabulary,
+          meaning,
+          translate,
+          example: exampleSentence,
+          category,
+        });
+      }
       const date = new Date();
-      await invoke<string>("add_word", {
-        vocabulary,
-        meaning,
-        translate,
-        example: exampleSentence,
-        category,
-      });
+
       form.reset({
         vocabulary: "",
         meaning: "",
@@ -59,14 +101,14 @@ export default function AddVocabularyForm() {
       });
 
       toast({
-        title: "単語を追加しました",
-        description: `『${vocabulary}』を追加しました。`,
+        title: `単語を${mode}しました`,
+        description: `『${vocabulary}』を${mode}しました。`,
       });
     } catch (error) {
-      console.error("単語の追加に失敗しました", error);
+      console.error(`単語の${mode}に失敗しました`, error);
       toast({
         title: "エラー",
-        description: "単語の追加に失敗しました",
+        description: `単語の${mode}に失敗しました`,
       });
     }
   }
@@ -74,8 +116,8 @@ export default function AddVocabularyForm() {
   return (
     <Card className="flex flex-col space-x-2">
       <CardHeader>
-        <CardTitle>単語追加</CardTitle>
-        <CardDescription>単語を追加します</CardDescription>
+        <CardTitle>単語{mode}</CardTitle>
+        <CardDescription>単語を{mode}します</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -104,7 +146,11 @@ export default function AddVocabularyForm() {
                 <FormItem className="space-y-6 p-1">
                   <FormLabel>意味</FormLabel>
                   <FormControl>
-                    <Input placeholder="意味" {...field} />
+                    <Textarea
+                      placeholder="意味"
+                      className="resize-none"
+                      {...field}
+                    />
                   </FormControl>
 
                   <FormMessage />
