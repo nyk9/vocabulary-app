@@ -54,6 +54,9 @@ jobs:
         # `beforeBuildCommand`が設定されていない場合、ここでフロントエンドをビルドすることを検討してください。
         run: bun install # 使用するものに応じて、これをnpmまたはpnpmに変更します。(ここではbunに変更しています)
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
