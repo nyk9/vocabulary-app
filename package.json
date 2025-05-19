@@ -2,8 +2,7 @@
   "name": "my-app",
   "private": true,
   "workspaces": [
-    "frontend",
-    "src-tauri"
+    "frontend"
   ],
   "devDependencies": {
     "next": "^15.2.4",
