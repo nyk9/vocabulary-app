@@ -33,12 +33,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      # (bunのインストール)
-      - name: setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable # これをdtolnay/rust-toolchain@nightlyに設定します。
         with:
@@ -50,12 +44,12 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: install frontend dependencies
-        # `beforeBuildCommand`が設定されていない場合、ここでフロントエンドをビルドすることを検討してください。
-        run: bun install # 使用するものに応じて、これをnpmまたはpnpmに変更します。(ここではbunに変更しています)
-
       - name: Install pnpm
         run: npm install -g pnpm
+
+      - name: install frontend dependencies
+        # `beforeBuildCommand`が設定されていない場合、ここでフロントエンドをビルドすることを検討してください。
+        run: pnpm install --filter ./frontend # 使用するものに応じて、これをnpmまたはpnpmに変更します。(ここではbunに変更しています)
 
       - uses: tauri-apps/tauri-action@v0
         env:
