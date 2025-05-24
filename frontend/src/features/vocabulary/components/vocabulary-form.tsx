@@ -121,7 +121,7 @@ export default function AddVocabularyForm({
   }
 
   return (
-    <Card className="flex flex-col space-x-2">
+    <Card className="flex flex-col space-x-2 min-w-96">
       <CardHeader>
         <CardTitle>単語{mode}</CardTitle>
         <CardDescription>単語を{mode}します</CardDescription>
