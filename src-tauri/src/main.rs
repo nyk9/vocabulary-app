@@ -11,6 +11,22 @@ static WORDS: Lazy<Mutex<Vec<Word>>> = Lazy::new(|| Mutex::new(Vec::new()));
 // グローバルな状態として日付リストを管理
 static DATES: Lazy<Mutex<Vec<Date>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
+// 品詞の型を定義（Enum）
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
+enum PartOfSpeech {
+    Noun, // 名詞
+    Verb, // 動詞
+    Adjective, // 形容詞
+    Adverb, // 副詞
+    Pronoun, // 代名詞
+    AuxiliaryVerb, // 助動詞
+    Article, // 冠詞
+    Conjunction, // 接続詞
+    Preposition, // 前置詞
+    Interjection, // 感嘆詞
+    Other, // その他
+}
+
 // 単語の型を定義
 #[derive(Serialize, Deserialize, Clone)]
 struct Word {
@@ -19,6 +35,7 @@ struct Word {
     meaning: String,
     translate: String,
     category: String,
+    part_of_speech: Vec<PartOfSpeech>,
     example: Option<String>,
 }
 
@@ -142,6 +159,7 @@ async fn add_word(
     translate: String,
     example: Option<String>,
     category: String,
+    part_of_speech: Vec<PartOfSpeech>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     println!("==== 単語追加開始 ====");
@@ -156,8 +174,9 @@ async fn add_word(
         vocabulary: vocabulary.clone(),
         meaning,
         translate,
-        example,
         category,
+        part_of_speech,
+        example,
     };
 
     println!("単語ID: {}", new_word.id);
@@ -240,6 +259,7 @@ async fn update_word(
     translate: String,
     example: Option<String>,
     category: String,
+    part_of_speech: Vec<PartOfSpeech>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     {
@@ -255,6 +275,7 @@ async fn update_word(
                 translate,
                 example,
                 category,
+                part_of_speech,
             };
         } else {
             return Err(format!("ID: {} が存在しません", id));
