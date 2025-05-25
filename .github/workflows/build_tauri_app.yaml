@@ -48,6 +48,8 @@ jobs:
         run: npm install -g pnpm
 
       - name: install frontend dependencies
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         # `beforeBuildCommand`が設定されていない場合、ここでフロントエンドをビルドすることを検討してください。
         run: pnpm install --filter ./frontend # 使用するものに応じて、これをnpmまたはpnpmに変更します。(ここではbunに変更しています)
 
