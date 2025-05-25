@@ -260,7 +260,26 @@ async fn update_word(
             return Err(format!("ID: {} が存在しません", id));
         };
     }
-    save_words_to_file(app_handle).await?;
+    save_words_to_file(app_handle.clone()).await?;
+
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    println!("今日の日付: {}", today);
+
+    let date_to_update = Date {
+        date: today,
+        add: 0,
+        update: 1,
+        quiz: None,
+    };
+
+    println!("日付統計を更新します...");
+    match add_date(date_to_update, "update".to_string(), app_handle).await {
+        Ok(_) => println!("日付統計の更新に成功しました"),
+        Err(e) => {
+            println!("日付統計の更新に失敗しました: {}", e);
+            return Err(format!("日付統計の更新に失敗: {}", e));
+        }
+    }
     Ok(())
 }
 

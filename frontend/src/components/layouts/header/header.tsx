@@ -16,6 +16,9 @@ const Header = () => {
         <Link href={"/quiz"} className="p-1">
           quiz
         </Link>
+        <Link href={"/test"} className="p-1">
+          test
+        </Link>
       </nav>
       <ModeToggle />
     </header>

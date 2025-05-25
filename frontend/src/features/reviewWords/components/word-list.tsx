@@ -42,52 +42,51 @@ export default function WordList() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 w-full mx-auto">
       {error && <div className="text-red-500 mb-4">{error}</div>}
 
-      <div>
-        <h2 className="text-lg font-bold mb-2">単語リスト ({words.length})</h2>
-        {words.length > 0 ? (
-          <div className="space-y-3">
-            {words.map((word) => (
-              <Card key={word.id} className="my-1">
-                <CardHeader>
-                  <CardTitle>
-                    {word.vocabulary} (id: {word.id})
-                  </CardTitle>
-                  <CardDescription>カテゴリ: {word.category}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>意味：{word.meaning} </p>
-                  <p>翻訳：{word.translate}</p>
-                </CardContent>
-                <CardFooter>
-                  <div>
-                    {word.example && (
-                      <div className="text-sm italic">例: {word.example}</div>
-                    )}
-                    <Button
-                      variant={"destructive"}
-                      onClick={() => deleteWord(word.id)}
-                      className="m-1"
-                    >
-                      削除
-                    </Button>
-                    <Button variant={"ghost"}>
-                      <Link href={`/update/${word.id}`}>更新</Link>
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p>
-            単語がありません。
-            <Link href={"/add"}> 単語を追加してください。</Link>
-          </p>
-        )}
-      </div>
+      <h2 className="text-lg font-bold mb-4">単語リスト ({words.length})</h2>
+
+      {words.length > 0 ? (
+        <div className="grid md:grid-cols-3 gap-4">
+          {words.map((word) => (
+            <Card key={word.id}>
+              <CardHeader>
+                <CardTitle>
+                  {word.vocabulary} (id: {word.id})
+                </CardTitle>
+                <CardDescription>カテゴリ: {word.category}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>意味：{word.meaning} </p>
+                <p>翻訳：{word.translate}</p>
+              </CardContent>
+              <CardFooter>
+                <div>
+                  {word.example && (
+                    <div className="text-sm italic">例: {word.example}</div>
+                  )}
+                  <Button
+                    variant={"destructive"}
+                    onClick={() => deleteWord(word.id)}
+                    className="m-1"
+                  >
+                    削除
+                  </Button>
+                  <Button variant={"ghost"}>
+                    <Link href={`/update/${word.id}`}>更新</Link>
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <p>
+          単語がありません。
+          <Link href={"/add"}> 単語を追加してください。</Link>
+        </p>
+      )}
     </div>
   );
 }

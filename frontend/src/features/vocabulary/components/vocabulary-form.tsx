@@ -121,7 +121,7 @@ export default function AddVocabularyForm({
   }
 
   return (
-    <Card className="flex flex-col space-x-2">
+    <Card className="flex flex-col space-x-2 min-w-96">
       <CardHeader>
         <CardTitle>単語{mode}</CardTitle>
         <CardDescription>単語を{mode}します</CardDescription>
@@ -130,7 +130,7 @@ export default function AddVocabularyForm({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-3 w-1/2 px-7"
+            className="space-y-1 px-2"
           >
             <FormField
               control={form.control}
