@@ -25,7 +25,8 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-import { Word } from "@/types/word";
+import { PartOfSpeech, Word } from "@/types/word";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type VocabularyFormProps = {
   mode: "追加" | "更新";
@@ -45,6 +46,7 @@ export default function AddVocabularyForm({
       translate: "",
       exampleSentence: "",
       category: "",
+      partOfSpeech: [] as PartOfSpeech[],
     },
   });
 
@@ -60,6 +62,7 @@ export default function AddVocabularyForm({
             translate: word.translate,
             exampleSentence: word.example || "",
             category: word.category,
+            partOfSpeech: word.partOfSpeech,
           });
         } catch (error) {
           console.error("", error);
@@ -69,10 +72,21 @@ export default function AddVocabularyForm({
     }
   }, [mode, wordId]);
 
+  const partOfSpeechOptions = Object.values(PartOfSpeech).map((pos) => ({
+    value: pos,
+    label: pos.replace(/([A-Z])/g, " $1").trim(), // CamelCase を空白で区切った表示に変換
+  }));
+
   async function onSubmit(value: z.infer<typeof formSchema>) {
     try {
-      const { vocabulary, meaning, translate, exampleSentence, category } =
-        value;
+      const {
+        vocabulary,
+        meaning,
+        translate,
+        exampleSentence,
+        category,
+        partOfSpeech,
+      } = value;
 
       if (mode == "追加") {
         // Rustの単語追加関数を呼び込み、実行する
@@ -82,6 +96,7 @@ export default function AddVocabularyForm({
           translate,
           example: exampleSentence,
           category,
+          partOfSpeech,
         });
         console.log("add_word が成功しました");
       } else if (mode == "更新" && wordId) {
@@ -93,6 +108,7 @@ export default function AddVocabularyForm({
           translate,
           example: exampleSentence,
           category,
+          partOfSpeech,
         });
       }
 
@@ -103,6 +119,7 @@ export default function AddVocabularyForm({
         translate: "",
         exampleSentence: "",
         category: "",
+        partOfSpeech: [] as PartOfSpeech[],
       });
 
       toast({
@@ -196,17 +213,42 @@ export default function AddVocabularyForm({
                 </FormItem>
               )}
             />
-            {/* <FormField
+            <FormField
               control={form.control}
-              name="category"
+              name="partOfSpeech"
               render={({ field }) => (
                 <FormItem className="space-y-6 p-1">
-                  <FormLabel>カテゴリー</FormLabel>
-                  <FormControl></FormControl>
+                  <FormLabel>品詞</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-2 gap-2">
+                      {partOfSpeechOptions.map((option) => (
+                        <div
+                          key={option.value}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            checked={field.value.includes(option.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                field.onChange([...field.value, option.value]);
+                              } else {
+                                field.onChange(
+                                  field.value.filter(
+                                    (value) => value !== option.value,
+                                  ),
+                                );
+                              }
+                            }}
+                          />
+                          <label className="text-sm">{option.label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
-            /> */}
+            />
             <FormField
               control={form.control}
               name="category"
