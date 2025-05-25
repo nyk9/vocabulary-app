@@ -57,7 +57,7 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
           tagName: app-v__VERSION__ # アクションは自動的に\_\_VERSION\_\_をアプリのバージョンに置き換えます。
           releaseName: "App v__VERSION__"
@@ -65,3 +65,4 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          environmentVariables: NEXT_ANTHROPIC_API_KEY

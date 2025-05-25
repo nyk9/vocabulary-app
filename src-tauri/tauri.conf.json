@@ -37,5 +37,12 @@
     "macOS": {
       "entitlements": "entitlements.plist"
     }
+  },
+  "plugins": {
+    "http": {
+      "all": true,
+      "request": true,
+      "scope": ["https://vocabulary-app-coral.vercel.app/*"]
+    }
   }
 }
