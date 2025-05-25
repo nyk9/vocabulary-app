@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function AddPage() {
   return (
     <div className="flex flex-col items-center justify-center mt-10 min-w-96 min-h-96">
-      <AddVocabularyForm mode="更新" />
+      <AddVocabularyForm mode="追加" />
     </div>
   );
 }

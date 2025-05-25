@@ -25,3 +25,4 @@ tauri = { version = "2.4.1", features = ["macos-private-api"] }
 tauri-plugin-fs = "2.0.0"
 tauri-plugin-log = "2.0.0-rc"
 once_cell = "1.8.0"
+chrono = { version = "0.4.20-rc.1" }
