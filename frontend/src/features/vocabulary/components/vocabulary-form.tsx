@@ -130,7 +130,7 @@ export default function AddVocabularyForm({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-3 w-1/2 px-7"
+            className="space-y-1 px-2"
           >
             <FormField
               control={form.control}
