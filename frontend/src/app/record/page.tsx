@@ -1,16 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DateRecord {
   date: string;
@@ -19,16 +25,30 @@ interface DateRecord {
   quiz?: number;
 }
 
-export default function WordStats() {
+const chartConfig = {
+  add: {
+    label: "追加",
+    color: "#2563eb", // blue-600
+  },
+  update: {
+    label: "更新",
+    color: "#4ade80", // green-400
+  },
+  quiz: {
+    label: "クイズ",
+    color: "#facc15", // yellow-400
+  },
+} satisfies ChartConfig;
+
+export default function RecordPage() {
   const [dateStats, setDateStats] = useState<DateRecord[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       try {
         const dates = (await invoke("get_dates")) as DateRecord[];
-        // 日付順にソートする
         const sortedDates = [...dates].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
         );
         setDateStats(sortedDates);
       } catch (error) {
@@ -39,27 +59,90 @@ export default function WordStats() {
     fetchData();
   }, []);
 
+  const totals = useMemo(() => {
+    return {
+      add: dateStats.reduce((acc, curr) => acc + curr.add, 0),
+      update: dateStats.reduce((acc, curr) => acc + curr.update, 0),
+      quiz: dateStats.reduce((acc, curr) => acc + (curr.quiz || 0), 0),
+    };
+  }, [dateStats]);
+
   return (
-    <div className="chart-container" style={{ width: "100%", height: 400 }}>
-      <h2>単語追加の統計</h2>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={dateStats}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="add" name="追加した単語数" fill="#8884d8" />
-          <Bar dataKey="update" name="更新した単語数" fill="#82ca9d" />
-          {/* クイズ情報があれば表示 */}
-          {dateStats.some((stat) => stat.quiz !== undefined) && (
-            <Bar dataKey="quiz" name="クイズ実施回数" fill="#ffc658" />
-          )}
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="p-4 md:p-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>学習記録</CardTitle>
+          <CardDescription>
+            日々の学習活動の推移をタブで切り替えて確認できます。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="add">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="add">追加</TabsTrigger>
+              <TabsTrigger value="update">更新</TabsTrigger>
+              <TabsTrigger value="quiz">クイズ</TabsTrigger>
+            </TabsList>
+            {(Object.keys(chartConfig) as (keyof typeof chartConfig)[]).map(
+              (key) => (
+                <TabsContent key={key} value={key}>
+                  <div className="py-4">
+                    <div className="flex items-center justify-between pb-4">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-lg font-medium">
+                          {chartConfig[key].label}数
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          合計: {totals[key].toLocaleString()} 件
+                        </p>
+                      </div>
+                    </div>
+                    <ChartContainer
+                      config={chartConfig}
+                      className="aspect-auto h-[250px] w-full"
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={dateStats}
+                        margin={{
+                          left: 12,
+                          right: 12,
+                        }}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          minTickGap={32}
+                          tickFormatter={(value) => {
+                            const date = new Date(value);
+                            return date.toLocaleDateString("ja-JP", {
+                              month: "short",
+                              day: "numeric",
+                            });
+                          }}
+                        />
+                        <YAxis tickLine={false} axisLine={false} />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent indicator="dot" />}
+                        />
+                        <Bar
+                          dataKey={key}
+                          fill={chartConfig[key].color}
+                          radius={4}
+                        />
+                      </BarChart>
+                    </ChartContainer>
+                  </div>
+                </TabsContent>
+              )
+            )}
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
