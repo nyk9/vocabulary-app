@@ -35,19 +35,15 @@ export default function ApiTest() {
   }, []);
 
   const handleGetSuggestions = async () => {
-    if (words.length === 0) {
-      setError("単語リストが空です。単語を追加してください。");
-      return;
-    }
-
     setLoading(true);
+    const recent_five_words = words.slice(-5);
     try {
       const response = await fetch("/api/suggestion-word", {
-        method: "POST", // GETではなくPOSTに変更
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ vocabulary: words }),
+        body: JSON.stringify({ vocabulary: recent_five_words }),
       });
 
       if (!response.ok) {

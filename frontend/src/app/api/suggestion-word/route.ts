@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.NEXT_ANTHROPIC_API_KEY,
 });
 
 export async function POST(req: NextRequest) {
@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
     const msg = await anthropic.messages.create({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 512,
+      system:
+        "You are a seasoned English vocabulary teacher. You are an expert in teaching vocabulary and have a deep understanding of the English language. You are also a skilled communicator and can provide clear and concise explanations.",
       messages: [
         {
           role: "user",

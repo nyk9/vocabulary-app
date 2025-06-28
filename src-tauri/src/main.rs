@@ -11,6 +11,22 @@ static WORDS: Lazy<Mutex<Vec<Word>>> = Lazy::new(|| Mutex::new(Vec::new()));
 // グローバルな状態として日付リストを管理
 static DATES: Lazy<Mutex<Vec<Date>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
+// 品詞の型を定義（Enum）
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
+enum PartOfSpeech {
+    Noun, // 名詞
+    Verb, // 動詞
+    Adjective, // 形容詞
+    Adverb, // 副詞
+    Pronoun, // 代名詞
+    AuxiliaryVerb, // 助動詞
+    Article, // 冠詞
+    Conjunction, // 接続詞
+    Preposition, // 前置詞
+    Interjection, // 感嘆詞
+    Other, // その他
+}
+
 // 単語の型を定義
 #[derive(Serialize, Deserialize, Clone)]
 struct Word {
@@ -19,6 +35,7 @@ struct Word {
     meaning: String,
     translate: String,
     category: String,
+    part_of_speech: Vec<PartOfSpeech>,
     example: Option<String>,
 }
 
@@ -142,6 +159,7 @@ async fn add_word(
     translate: String,
     example: Option<String>,
     category: String,
+    part_of_speech: Vec<PartOfSpeech>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     println!("==== 単語追加開始 ====");
@@ -156,8 +174,9 @@ async fn add_word(
         vocabulary: vocabulary.clone(),
         meaning,
         translate,
-        example,
         category,
+        part_of_speech,
+        example,
     };
 
     println!("単語ID: {}", new_word.id);
@@ -240,6 +259,7 @@ async fn update_word(
     translate: String,
     example: Option<String>,
     category: String,
+    part_of_speech: Vec<PartOfSpeech>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     {
@@ -255,6 +275,7 @@ async fn update_word(
                 translate,
                 example,
                 category,
+                part_of_speech,
             };
         } else {
             return Err(format!("ID: {} が存在しません", id));
@@ -372,6 +393,55 @@ async fn add_date(date: Date, mode: String, app_handle: tauri::AppHandle) -> Res
     Ok(())
 }
 
+// 日付データが存在しない日を補完する関数
+async fn ensure_date_records_exist(app_handle: &tauri::AppHandle) -> Result<(), String> {
+    let mut missing_dates_added = false;
+    {
+        let mut dates = DATES
+            .lock()
+            .map_err(|e| format!("Failed to lock dates: {:?}", e))?;
+
+        if dates.is_empty() {
+            return Ok(());
+        }
+
+        dates.sort_by_key(|d| d.date.clone());
+
+        if let Some(last_date_entry) = dates.last() {
+            let last_date_str = &last_date_entry.date;
+            let today = chrono::Local::now().date_naive();
+            let mut current_date = chrono::NaiveDate::parse_from_str(last_date_str, "%Y-%m-%d")
+                .map_err(|e| format!("Failed to parse last date: {}", e))?
+                + chrono::Duration::days(1);
+
+            let mut dates_to_add = Vec::new();
+            while current_date <= today {
+                let date_str = current_date.format("%Y-%m-%d").to_string();
+                dates_to_add.push(Date {
+                    date: date_str,
+                    add: 0,
+                    update: 0,
+                    quiz: Some(0),
+                });
+                current_date += chrono::Duration::days(1);
+            }
+
+            if !dates_to_add.is_empty() {
+                println!("Adding {} missing date records.", dates_to_add.len());
+                dates.extend(dates_to_add);
+                missing_dates_added = true;
+            }
+        }
+    }
+
+    if missing_dates_added {
+        save_dates_to_file(app_handle.clone()).await?;
+        println!("Successfully saved missing date records.");
+    }
+
+    Ok(())
+}
+
 
 // メイン関数：Tauriで実行する
 fn main() {
@@ -387,6 +457,9 @@ fn main() {
                 }
                 if let Err(e) = load_dates_from_file(&app_handle).await {
                     eprintln!("Error loading dates: {}", e);
+                }
+                if let Err(e) = ensure_date_records_exist(&app_handle).await {
+                    eprintln!("Error ensuring date records exist: {}", e);
                 }
             });
             Ok(())

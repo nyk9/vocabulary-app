@@ -66,6 +66,11 @@ export default function WordList() {
                   {word.example && (
                     <div className="text-sm italic">例: {word.example}</div>
                   )}
+                  {word.partOfSpeech && (
+                    <div className="text-sm italic border border-b-cyan-400">
+                      品詞: {word.partOfSpeech}
+                    </div>
+                  )}
                   <Button
                     variant={"destructive"}
                     onClick={() => deleteWord(word.id)}
