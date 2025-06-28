@@ -5,6 +5,37 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::Manager;
+use dotenvy::dotenv;
+use std::env;
+
+// --- AI Grading Structures ---
+#[derive(Serialize, Deserialize, Debug)]
+struct GradingResponse {
+    score: u32,
+    feedback: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Candidate {
+    content: Content,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Content {
+    parts: Vec<Part>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Part {
+    text: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct GeminiApiResponse {
+    candidates: Vec<Candidate>,
+}
+
+// --- End AI Grading Structures ---
 
 // グローバルな状態として単語リストを管理
 static WORDS: Lazy<Mutex<Vec<Word>>> = Lazy::new(|| Mutex::new(Vec::new()));
@@ -442,8 +473,142 @@ async fn ensure_date_records_exist(app_handle: &tauri::AppHandle) -> Result<(), 
     Ok(())
 }
 
+fn build_prompt(vocabulary: &str, meaning: &str, user_answer: &str) -> String {
+    format!(
+        r#"
+あなたは英語学習の専門家です。以下の情報に基づいて、ユーザーの解答を採点し、フィードバックを提供してください。
 
-// メイン関数：Tauriで実行する
+### 指示
+1.  **役割**: あなたは、ユーザーの英語の理解度を評価する親切な家庭教師です。
+2.  **採点基準**:
+    *   **正確性**: ユーザーの解答が、提示された「正しい意味」と合致しているか。
+    *   **自然さ**: 英語の表現として自然か、不自然な点はないか。
+    *   **具体性**: 例文として適切か、具体的に状況を説明できているか。
+3.  **評価**: 上記の基準に基づき、ユーザーの解答を0点から100点の範囲で採点してください。
+4.  **フィードバック**:
+    *   必ず良かった点を1つ以上挙げてください。
+    *   改善できる点があれば、具体的に指摘し、より良い表現の例を提示してください。
+    *   全体を通して、ユーザーの学習意欲を高めるような、ポジティブで丁寧な言葉遣いを心がけてください。
+5.  **出力形式**: 採点結果は、必ず以下のJSON形式で返してください。他のテキストは一切含めないでください。
+    ```json
+    {{
+      "score": <0-100の整数>,
+      "feedback": "<フィードバックの文字列>"
+    }}
+    ```
+
+### 問題
+*   **単語**: {}
+*   **正しい意味**: {}
+
+### ユーザーの解答
+{}
+"#,
+        vocabulary, meaning, user_answer
+    )
+}
+
+async fn grade_with_gemini(
+    api_key: &str,
+    client: &reqwest::Client,
+    vocabulary: &str,
+    meaning: &str,
+    user_answer: &str,
+) -> Result<GradingResponse, String> {
+    let prompt = build_prompt(vocabulary, meaning, user_answer);
+    let url = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={}", api_key);
+
+    let payload = serde_json::json!({
+        "contents": [{
+            "parts": [{
+                "text": prompt
+            }]
+        }]
+    });
+
+    let res = client
+        .post(&url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Gemini request failed: {}", e))?;
+
+    if !res.status().is_success() {
+        return Err(format!("Gemini API error: {}", res.status()));
+    }
+
+    let gemini_response: GeminiApiResponse = res
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Gemini response: {}", e))?;
+
+    if let Some(candidate) = gemini_response.candidates.first() {
+        if let Some(part) = candidate.content.parts.first() {
+            // AIの出力からJSON部分だけを抽出する
+            let json_text = if let (Some(start), Some(end)) = (part.text.find('{'), part.text.rfind('}')) {
+                &part.text[start..=end]
+            } else {
+                &part.text
+            };
+
+            return serde_json::from_str(json_text)
+                .map_err(|e| format!("Failed to deserialize Gemini JSON: {}. Raw text: {}", e, part.text));
+        }
+    }
+
+    Err("No content found in Gemini response".to_string())
+}
+
+
+#[tauri::command]
+async fn grade_answer(
+    vocabulary: String,
+    meaning: String,
+    user_answer: String,
+) -> Result<GradingResponse, String> {
+    dotenv().ok(); // .envファイルを読み込む
+
+    let client = reqwest::Client::new();
+
+    // 1. Gemini APIを試す
+    if let Ok(api_key) = env::var("GEMINI_API_KEY") {
+        println!("Attempting to grade with Gemini...");
+        match grade_with_gemini(&api_key, &client, &vocabulary, &meaning, &user_answer).await {
+            Ok(response) => {
+                println!("Successfully graded with Gemini.");
+                return Ok(response);
+            }
+            Err(e) => {
+                eprintln!("Gemini API failed: {}. Falling back to Claude.", e);
+            }
+        }
+    } else {
+        eprintln!("GEMINI_API_KEY not found. Skipping Gemini.");
+    }
+
+    // 2. Geminiが失敗した場合、Claude APIを試す (フォールバック)
+    // Note: Claudeの実装は、APIの仕様に合わせて別途追加する必要があります。
+    // ここでは、フォールバックのロジックを示すためのプレースホルダーです。
+    if let Ok(_api_key) = env::var("CLAUDE_API_KEY") {
+         eprintln!("Claude fallback is not yet implemented.");
+        // match grade_with_claude(&api_key, &client, &vocabulary, &meaning, &user_answer).await {
+        //     Ok(response) => {
+        //         println!("Successfully graded with Claude.");
+        //         return Ok(response);
+        //     }
+        //     Err(e) => {
+        //         eprintln!("Claude API failed: {}", e);
+        //     }
+        // }
+    } else {
+        eprintln!("CLAUDE_API_KEY not found. Skipping Claude.");
+    }
+
+
+    Err("All AI grading services failed.".to_string())
+}
+
+
 fn main() {
     tauri::Builder::default()
         // tauri-plugin-fsはプラグインとしては必要なくなりました
@@ -475,6 +640,7 @@ fn main() {
             get_dates,
             add_date,
             save_dates_to_file,
+            grade_answer,
         ])
         // 実行
         .run(tauri::generate_context!())
