@@ -35,23 +35,16 @@ export default function ApiTest() {
   }, []);
 
   const handleGetSuggestions = async () => {
-    // if (words.length === 0) {
-    //   setError("単語リストが空です。単語を追加してください。");
-    //   return;
-    // }
-
     setLoading(true);
+    const recent_five_words = words.slice(-5);
     try {
-      const response = await fetch(
-        "https://vocabulary-app-coral.vercel.app/api/suggestion-word",
-        {
-          method: "POST", // GETではなくPOSTに変更
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ vocabulary: words }),
+      const response = await fetch("/api/suggestion-word", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ vocabulary: recent_five_words }),
+      });
 
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`);
